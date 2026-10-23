@@ -4,6 +4,8 @@ import hashlib
 import json
 import sqlite3
 import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -15,8 +17,14 @@ class LLMCache:
         with self._connect() as conn:
             conn.execute("CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
 
-    def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self.path, timeout=30)
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        conn = sqlite3.connect(self.path, timeout=30)
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     @staticmethod
     def make_key(model: str, messages: list[dict], json_mode: bool, max_tokens: int) -> str:

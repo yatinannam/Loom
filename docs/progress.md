@@ -34,3 +34,16 @@ Decisions
 
 - Cache lookup happens before the API key check, so cached results remain readable
   without a key. A cache miss without a key raises `llm_not_configured`.
+
+## 2026-10-23 — Task 2: registry
+
+Added
+
+- `app/registry.py`: SQLite registry (WAL) for documents, extraction errors, activity
+  feed, evaluation runs and per-question evaluation records. `DocumentRow` Pydantic
+  model. Connections are opened and closed per call.
+- `.gitattributes` normalizing line endings to LF.
+
+Tests
+
+- `uv run pytest`: 13 passed (7 registry, 6 provider).
