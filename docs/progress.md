@@ -47,3 +47,21 @@ Added
 Tests
 
 - `uv run pytest`: 13 passed (7 registry, 6 provider).
+
+## 2026-10-23 — Task 3: parsing and chunking
+
+Added
+
+- `app/ingestion/parsing.py`: upload validation (extension allow-list `.pdf .txt .md`,
+  size limit, empty file, PDF magic bytes), content-hash document ids (16 hex chars of
+  SHA-256), text extraction per PDF page with pypdf, UTF-8 text for TXT and Markdown.
+  Files without any text raise `NoExtractableText`.
+- `app/ingestion/chunking.py`: character windows (`CHUNK_SIZE`, `CHUNK_OVERLAP`)
+  breaking at the last paragraph or sentence boundary in the final 30% of the window;
+  the next chunk starts on a word boundary inside the overlap. Chunks never span PDF
+  pages. `ChunkRecord` in `app/models.py`.
+- `tests/pdf_fixture.py`: builds minimal text-layer PDFs in tests.
+
+Tests
+
+- `uv run pytest`: 27 passed.
