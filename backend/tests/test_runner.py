@@ -103,3 +103,19 @@ def test_only_one_run_at_a_time(tmp_path):
     ev._running = "busy"
     with pytest.raises(RuntimeError):
         ev.start(["standard"])
+
+
+def test_malformed_answer_is_recorded_and_run_continues(tmp_path):
+    llm = demo_fake_llm(extra=[(f"Question: {ALICE_QUESTION}", "this is not json"),
+                               (f"Question: {ZORBLAX}", INSUFFICIENT)])
+    env, ev = build(tmp_path, llm=llm)
+    ev.load_corpus()
+    run_id = ev.run_now(["standard"])
+    run = env.registry.get_eval_run(run_id)
+    assert run["status"] == "completed"
+    records = {r["question_id"]: r["record"] for r in env.registry.eval_results(run_id)}
+    assert records["q1"]["error"].startswith("llm_bad_response")
+    assert records["q1"]["metrics"]["correct"] is False
+    assert records["q2"]["metrics"]["correct"] is True
+    assert run["summary"]["modes"]["standard"]["errors"] == 1
+    assert run["summary"]["modes"]["standard"]["accuracy"] == 0.5

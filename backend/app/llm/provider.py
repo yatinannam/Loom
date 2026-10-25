@@ -35,6 +35,12 @@ class LLMBadResponse(LLMError):
     code = "llm_bad_response"
 
 
+class LLMInvalidJSON(LLMBadResponse):
+    """The provider rejected its own JSON-mode output (Groq: HTTP 400 json_validate_failed)."""
+
+    code = "llm_invalid_json"
+
+
 @dataclass
 class LLMUsage:
     model: str
@@ -150,6 +156,8 @@ class OpenAICompatibleLLM:
             if resp is not None and resp.status_code == 200:
                 return resp.json()
             if resp is not None and resp.status_code not in (429,) and resp.status_code < 500:
+                if "json_validate_failed" in resp.text:
+                    raise LLMInvalidJSON(f"provider could not produce valid JSON: {resp.text[:300]}")
                 raise LLMBadResponse(f"provider returned HTTP {resp.status_code}: {resp.text[:300]}")
             if attempt == self.max_retries:
                 break

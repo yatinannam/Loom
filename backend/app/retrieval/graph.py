@@ -9,7 +9,7 @@ from app.config import Settings
 from app.graph.resolution import EntityResolver
 from app.graph.store import GraphStore
 from app.graph.traversal import enumerate_paths, score_paths
-from app.llm.provider import LLMProvider, LLMUsage
+from app.llm.provider import LLMInvalidJSON, LLMProvider, LLMUsage
 from app.retrieval.types import GraphPath, PathStep, RetrievalResult, RetrievedChunk
 from app.vector.store import VectorStore
 
@@ -23,14 +23,18 @@ QUERY_ENTITY_SYSTEM = (
 )
 
 
-def query_entities(llm: LLMProvider, model: str, question: str) -> tuple[list[str], LLMUsage]:
-    resp = llm.complete(
-        [{"role": "system", "content": QUERY_ENTITY_SYSTEM},
-         {"role": "user", "content": f"{QUERY_ENTITY_PREFIX}\n{question}"}],
-        model=model,
-        json_mode=True,
-        max_tokens=256,
-    )
+def query_entities(llm: LLMProvider, model: str, question: str) -> tuple[list[str], LLMUsage | None]:
+    try:
+        resp = llm.complete(
+            [{"role": "system", "content": QUERY_ENTITY_SYSTEM},
+             {"role": "user", "content": f"{QUERY_ENTITY_PREFIX}\n{question}"}],
+            model=model,
+            json_mode=True,
+            max_tokens=256,
+        )
+    except LLMInvalidJSON:
+        log.warning("query entity extraction returned invalid JSON; falling back to name scan only")
+        return [], None
     try:
         items = json.loads(resp.text).get("entities") or []
         mentions = [str(i).strip() for i in items if str(i).strip()]
@@ -63,15 +67,16 @@ def retrieve_graph(
             route_reason=reason, latency_ms=(time.perf_counter() - start) * 1000, usage=list(usage),
         )
 
-    mentions, usage = query_entities(llm, settings.query_entity_model, question)
+    mentions, call = query_entities(llm, settings.query_entity_model, question)
+    usage = [call] if call else []
     seeds = resolver.resolve_query(mentions, question, settings.entity_min_score, settings.max_seed_entities)
     if not seeds:
-        return result("no query entity matched a graph node", usage=[usage])
+        return result("no query entity matched a graph node", usage=usage)
     seed_ids = [s.entity_id for s in seeds]
 
     raw_paths = enumerate_paths(graph, seed_ids, settings.max_hops, settings.max_node_degree, settings.max_paths)
     if not raw_paths:
-        return result("seed entities have no relations", seeds=seeds, usage=[usage])
+        return result("seed entities have no relations", seeds=seeds, usage=usage)
 
     edges = {rel.key: rel for path in raw_paths for rel, _ in path}
     node_ids = sorted({n for rel in edges.values() for n in (rel.source, rel.target)})
@@ -82,7 +87,7 @@ def retrieve_graph(
     scored = score_paths(raw_paths, vecs[0], edge_vecs, settings.hop_decay, seed_ids,
                          settings.path_min_score, settings.top_paths)
     if not scored:
-        return result("no path scored above PATH_MIN_SCORE", seeds=seeds, usage=[usage])
+        return result("no path scored above PATH_MIN_SCORE", seeds=seeds, usage=usage)
 
     paths: list[GraphPath] = []
     chunk_scores: dict[str, float] = {}
@@ -109,4 +114,4 @@ def retrieve_graph(
         RetrievedChunk(chunk=records[cid], score=s, sources={"graph": {"rank": i + 1, "score": s}})
         for i, (cid, s) in enumerate((cid, s) for cid, s in ranked if cid in records)
     ]
-    return result(f"{len(paths)} paths from {len(seeds)} seed entities", chunks, paths, seeds, [usage])
+    return result(f"{len(paths)} paths from {len(seeds)} seed entities", chunks, paths, seeds, usage)

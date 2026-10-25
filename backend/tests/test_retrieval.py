@@ -88,3 +88,14 @@ def test_path_render_backward():
     p = GraphPath(steps=[PathStep("a", "A", "LEADS", "b", "B", True), PathStep("c", "C", "USES", "b", "B", False)],
                   score=1.0, chunk_ids=[])
     assert p.render() == "A -[LEADS]-> B <-[USES]- C"
+
+
+def test_query_entity_json_failure_falls_back_to_name_scan(demo_env):
+    from app.llm.provider import LLMInvalidJSON
+    from app.retrieval.graph import QUERY_ENTITY_PREFIX
+    from tests.fixtures.demo_llm import demo_fake_llm
+
+    demo_env.llm = demo_fake_llm(extra=[(QUERY_ENTITY_PREFIX, LLMInvalidJSON("json_validate_failed"))])
+    res = retrieve_graph(ALICE_QUESTION, **deps(demo_env))
+    assert "alice" in {s.entity_id for s in res.seeds}
+    assert res.chunks

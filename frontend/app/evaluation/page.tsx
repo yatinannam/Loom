@@ -26,12 +26,19 @@ const ROWS: { label: string; value: (m: ModeSummary) => string }[] = [
   { label: "Mean retrieval latency", value: (m) => ms(m.retrieval_ms_mean) },
   { label: "Mean end-to-end latency", value: (m) => ms(m.total_ms_mean) },
   { label: "Median end-to-end latency", value: (m) => ms(m.total_ms_median) },
+  { label: "Queries that errored", value: (m) => String(m.errors ?? 0) },
   { label: "LLM calls (from cache)", value: (m) => `${m.llm_calls} (${m.cached_calls})` },
   { label: "Tokens (prompt + completion)", value: (m) => (m.prompt_tokens + m.completion_tokens).toLocaleString() },
 ]
 
-function Verdict({ ok }: { ok: boolean | undefined }) {
+function Verdict({ ok, error }: { ok: boolean | undefined; error?: string | null }) {
   if (ok === undefined) return <span className="text-muted-foreground">n/a</span>
+  if (error)
+    return (
+      <span className="inline-flex items-center gap-1 text-sm text-destructive" title={error}>
+        <AlertTriangle className="size-4" aria-hidden />Error
+      </span>
+    )
   return ok ? (
     <span className="inline-flex items-center gap-1 text-sm"><Check className="size-4 text-mode-hybrid" aria-hidden />Correct</span>
   ) : (
@@ -63,8 +70,9 @@ function Drilldown({ records, onClose }: { records: EvalRecord[] | null; onClose
                   <section key={r.mode} className="space-y-3 rounded-lg border p-4" style={{ borderLeftColor: info.color, borderLeftWidth: 3 }}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="font-semibold" style={{ color: info.color }}>{info.label}</h3>
-                      <Verdict ok={r.metrics.correct} />
+                      <Verdict ok={r.metrics.correct} error={r.error} />
                     </div>
+                    {r.error && <p className="text-sm text-destructive">{r.error}</p>}
                     <div className="rounded-md bg-muted/60 p-3 text-sm">
                       <div className="mb-1 text-xs text-muted-foreground">Generated answer</div>
                       {r.answer}
@@ -342,7 +350,9 @@ export default function EvaluationPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{categoryLabel(rs[0].category)}</TableCell>
                   {runModes.map((m) => (
-                    <TableCell key={m}><Verdict ok={rs.find((r) => r.mode === m)?.metrics.correct} /></TableCell>
+                    <TableCell key={m}>
+                      <Verdict ok={rs.find((r) => r.mode === m)?.metrics.correct} error={rs.find((r) => r.mode === m)?.error} />
+                    </TableCell>
                   ))}
                 </TableRow>
               ))}

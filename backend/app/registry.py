@@ -131,6 +131,24 @@ class Registry:
             conn.execute("DELETE FROM documents WHERE id = ?", (id,))
             conn.execute("DELETE FROM extraction_errors WHERE document_id = ?", (id,))
 
+    def fail_interrupted(self) -> tuple[int, int]:
+        """Called at startup: work left `uploaded`, `processing` or `running` by a previous
+        process can never finish, so mark it failed instead of leaving it pending forever."""
+        doc_error = "interrupted: the backend stopped before ingestion finished; re-ingest the document"
+        run_summary = json.dumps({"error": "interrupted: the backend stopped during this run"})
+        with self._connect() as conn:
+            docs = conn.execute(
+                "UPDATE documents SET status = 'failed', error = ?, updated_at = ?"
+                " WHERE status IN ('uploaded', 'processing')",
+                (doc_error, _now()),
+            ).rowcount
+            runs = conn.execute(
+                "UPDATE eval_runs SET status = 'failed', summary_json = COALESCE(summary_json, ?)"
+                " WHERE status = 'running'",
+                (run_summary,),
+            ).rowcount
+        return docs, runs
+
     # Extraction errors
 
     def add_extraction_error(self, document_id: str, chunk_id: str | None, message: str, raw: str | None) -> None:

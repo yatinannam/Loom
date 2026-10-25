@@ -298,6 +298,7 @@ docs/            brief, design, plan, progress log, evaluation
 | `/api/health` reports `neo4j: down` | Neo4j is not running or the credentials differ. Run `docker compose up -d neo4j` and check `NEO4J_*` in `.env`. |
 | Upload returns 503 `llm_not_configured` | `LLM_API_KEY` is empty. Set it in `.env` and restart the backend. |
 | Documents end in `failed` with `llm_rate_limited` | The provider's free limit was reached. Wait for the window to reset and re-ingest; completed calls are served from the cache. |
+| Documents show `failed` with `interrupted` | The backend stopped while they were being ingested. Use re-ingest on the Documents page. |
 | First ingestion is slow | The ONNX embedding model is being downloaded (about 80 MB). |
 | Frontend shows "Cannot reach the API" | The backend is not on `http://localhost:8000`. Set `NEXT_PUBLIC_API_URL` for the frontend if it runs elsewhere. |
 

@@ -69,3 +69,19 @@ def test_query_limit_and_dedupe():
     seeds = setup().resolve_query(["Alice", "alice"], "Alice and Acme and EdgeCore", min_score=0.5, limit=2)
     assert len(seeds) == 2
     assert len({s.entity_id for s in seeds}) == 2
+
+
+def test_query_does_not_reset_index_used_by_concurrent_ingestion():
+    # Ingestion registers names before they are visible through entity_index();
+    # a query running meanwhile must not drop them (that would create duplicate nodes).
+    resolver = setup()
+    resolver.register("project-falcon", ["Project Falcon", "Falcon"])
+    resolver.resolve_query(["Alice"], "Who is Alice?", min_score=0.5, limit=5)
+    assert resolver.resolve_ingest("Falcon", []) == "project-falcon"
+
+
+def test_query_sees_entities_added_to_graph_after_refresh():
+    resolver = setup()
+    resolver.graph.upsert_entity(Entity("lumen-labs", "Lumen Labs", "ORGANIZATION", [], ""), M)
+    seeds = resolver.resolve_query(["Lumen Labs"], "q", min_score=0.5, limit=5)
+    assert [s.entity_id for s in seeds] == ["lumen-labs"]

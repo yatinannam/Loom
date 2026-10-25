@@ -171,3 +171,11 @@ def test_evaluation_endpoints(tmp_path):
         assert csv_resp.headers["content-type"].startswith("text/csv")
         assert "attachment" in csv_resp.headers["content-disposition"]
         assert [r["id"] for r in c.get("/api/evaluation/runs").json()] == [run_id]
+
+
+def test_upload_with_one_invalid_file_stores_nothing(client):
+    files = [("files", ("employee.md", (DEMO_DIR / "employee.md").read_bytes(), "text/markdown")),
+             ("files", ("tool.exe", b"MZ", "application/octet-stream"))]
+    resp = client.post("/api/documents/upload", files=files)
+    assert resp.status_code == 400
+    assert client.get("/api/documents").json() == []

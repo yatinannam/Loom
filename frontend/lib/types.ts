@@ -191,6 +191,7 @@ export interface QueryResponse {
 
 export interface ModeSummary {
   questions: number
+  errors: number
   accuracy: number | null
   f1: number | null
   context_recall: number | null
@@ -258,6 +259,7 @@ export interface EvalRecord {
   retrieval_ms: number
   total_ms: number
   usage: QueryResponse["usage"]
+  error: string | null
   metrics: {
     correct: boolean
     f1: number

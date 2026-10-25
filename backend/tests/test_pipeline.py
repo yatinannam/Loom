@@ -106,3 +106,17 @@ def test_file_without_text_fails_with_reason(tmp_path):
     doc = env.registry.get_document(row.id)
     assert doc.status == "failed"
     assert "no extractable text" in doc.error
+
+
+def test_provider_json_failure_skips_chunk_not_document(tmp_path):
+    from app.llm.provider import LLMInvalidJSON
+
+    text = "Zed runs the Orbit lab in Lisbon."
+    llm = demo_fake_llm(extra=[(text, LLMInvalidJSON("json_validate_failed"))])
+    env = make_env(tmp_path, llm=llm)
+    row = env.ingestion.add_file("zed.md", text.encode())
+    env.ingestion.ingest(row.id)
+    doc = env.registry.get_document(row.id)
+    assert doc.status == "ingested"
+    assert doc.chunk_count == 1
+    assert any("json" in e["message"].lower() for e in env.registry.list_extraction_errors(row.id))

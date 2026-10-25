@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from app.extraction.normalize import evidence_supported, normalize_name
 from app.extraction.schema import ENTITY_TYPES, ExtractedEntity, ExtractedRelation, ExtractionResult
-from app.llm.provider import LLMProvider, LLMUsage
+from app.llm.provider import LLMInvalidJSON, LLMProvider, LLMUsage
 
 SYSTEM_PROMPT = f"""You extract a knowledge graph from text.
 Return one JSON object with exactly two keys, "entities" and "relations".
@@ -84,16 +84,21 @@ def extract_chunk(
         {"role": "user", "content": f"Text:\n{chunk_text}"},
     ]
     usages: list[LLMUsage] = []
-    resp = llm.complete(messages, model=model, json_mode=True, max_tokens=2048)
-    usages.append(resp.usage)
+
+    def attempt(msgs: list[dict]) -> tuple[ExtractionResult, list[str]]:
+        try:
+            resp = llm.complete(msgs, model=model, json_mode=True, max_tokens=2048)
+        except LLMInvalidJSON as exc:  # provider-side JSON failure: same handling as unparseable output
+            raise ExtractionParseError(str(exc)) from exc
+        usages.append(resp.usage)
+        return validate_extraction(resp.text, chunk_text)
+
     try:
-        result, warnings = validate_extraction(resp.text, chunk_text)
+        result, warnings = attempt(messages)
     except ExtractionParseError as exc:
         retry = messages + [
-            {"role": "assistant", "content": resp.text},
-            {"role": "user", "content": f"Your previous reply was invalid ({exc}). Reply with only the JSON object for the same text:\n{chunk_text}"},
+            {"role": "user", "content": f"Your previous reply was invalid ({exc}). "
+                                        f"Reply with only the JSON object for the same text:\n{chunk_text}"},
         ]
-        resp = llm.complete(retry, model=model, json_mode=True, max_tokens=2048)
-        usages.append(resp.usage)
-        result, warnings = validate_extraction(resp.text, chunk_text)
+        result, warnings = attempt(retry)
     return result, warnings, usages

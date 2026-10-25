@@ -47,6 +47,7 @@ def build_services(settings: Settings) -> Services:
 
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     registry = Registry(settings.data_dir / "loom.db")
+    registry.fail_interrupted()
     client = chromadb.PersistentClient(path=str(settings.data_dir / "chroma"))
     vector = ChromaVectorStore(client, make_embedder(settings.embedding_model), model_slug(settings.embedding_model))
     graph = LazyGraph(lambda: Neo4jGraphStore(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password))

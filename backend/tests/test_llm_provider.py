@@ -108,3 +108,25 @@ def test_json_mode_sets_response_format():
 
     make_llm(handler).complete(MESSAGES, model="m1", json_mode=True)
     assert seen["body"]["response_format"] == {"type": "json_object"}
+
+
+def test_json_validate_failed_400_raises_invalid_json():
+    from app.llm.provider import LLMBadResponse, LLMInvalidJSON
+
+    def handler(request):
+        return httpx.Response(400, json={"error": {"message": "Failed to generate JSON", "code": "json_validate_failed"}})
+
+    with pytest.raises(LLMInvalidJSON) as exc:
+        make_llm(handler).complete(MESSAGES, model="m1", json_mode=True)
+    assert isinstance(exc.value, LLMBadResponse)
+
+
+def test_other_400_is_not_invalid_json():
+    from app.llm.provider import LLMBadResponse, LLMInvalidJSON
+
+    def handler(request):
+        return httpx.Response(401, json={"error": {"message": "Invalid API Key", "code": "invalid_api_key"}})
+
+    with pytest.raises(LLMBadResponse) as exc:
+        make_llm(handler).complete(MESSAGES, model="m1")
+    assert not isinstance(exc.value, LLMInvalidJSON)

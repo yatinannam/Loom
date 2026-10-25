@@ -117,3 +117,30 @@ def test_two_parse_errors_raise():
     llm = SequenceLLM(["{oops", "{still bad"])
     with pytest.raises(ExtractionParseError):
         extract_chunk(llm, "m", TEXT)
+
+
+class RaisingThenLLM(SequenceLLM):
+    def complete(self, messages, *, model, json_mode=False, max_tokens=1024):
+        item = self.texts[0]
+        if isinstance(item, Exception):
+            self.texts.pop(0)
+            self.prompts.append(messages)
+            raise item
+        return super().complete(messages, model=model, json_mode=json_mode, max_tokens=max_tokens)
+
+
+def test_provider_json_failure_is_retried_like_a_parse_error():
+    from app.llm.provider import LLMInvalidJSON
+
+    llm = RaisingThenLLM([LLMInvalidJSON("json_validate_failed"), payload([ALICE, ACME], [WORKS_AT])])
+    result, _, _ = extract_chunk(llm, "m", TEXT)
+    assert len(result.relations) == 1
+    assert len(llm.prompts) == 2
+
+
+def test_provider_json_failure_twice_becomes_parse_error():
+    from app.llm.provider import LLMInvalidJSON
+
+    llm = RaisingThenLLM([LLMInvalidJSON("json_validate_failed"), LLMInvalidJSON("json_validate_failed")])
+    with pytest.raises(ExtractionParseError):
+        extract_chunk(llm, "m", TEXT)

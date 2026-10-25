@@ -78,3 +78,23 @@ def test_eval_run_lifecycle(tmp_path):
     assert reg.eval_results(run_id) == [
         {"question_id": "q1", "mode": "standard", "record": {"correct": True}}
     ]
+
+
+def test_fail_interrupted_marks_leftover_work_failed(tmp_path):
+    reg = make(tmp_path)
+    for doc_id, status in (("a", "uploaded"), ("b", "processing"), ("c", "ingested"), ("d", "failed")):
+        reg.upsert_document(doc_id, f"{doc_id}.md", "text/markdown", 1)
+        reg.set_status(doc_id, status, error="old" if status == "failed" else None)
+    running = reg.create_eval_run({"modes": ["standard"]})
+    done = reg.create_eval_run({"modes": ["standard"]})
+    reg.finish_eval_run(done, "completed", {"modes": {}})
+
+    assert reg.fail_interrupted() == (2, 1)
+    statuses = {d.id: (d.status, d.error) for d in reg.list_documents()}
+    assert statuses["a"][0] == statuses["b"][0] == "failed"
+    assert "interrupted" in statuses["a"][1]
+    assert statuses["c"] == ("ingested", None)
+    assert statuses["d"] == ("failed", "old")
+    assert reg.get_eval_run(running)["status"] == "failed"
+    assert "interrupted" in reg.get_eval_run(running)["summary"]["error"]
+    assert reg.get_eval_run(done)["status"] == "completed"

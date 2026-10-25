@@ -10,14 +10,20 @@ import json
 import logging
 import statistics
 import threading
+import time
 from pathlib import Path
 
 from app.evaluation.dataset import Question, load_questions
 from app.evaluation.metrics import citation_scores, context_recall, question_correct, token_f1
+from app.graph.store import GraphUnavailable
 from app.ingestion.parsing import document_id_for
+from app.llm.provider import LLMNotConfigured, LLMRateLimited, LLMUnavailable
 from app.query import MODES, QueryResponse
 
 log = logging.getLogger(__name__)
+
+# These persist across questions, so the run stops; any other failure is recorded for that question only.
+FATAL_ERRORS = (LLMRateLimited, LLMNotConfigured, LLMUnavailable, GraphUnavailable)
 
 RETRIEVAL_CONFIG_FIELDS = (
     "max_evidence_chunks", "vector_min_score", "entity_min_score", "max_seed_entities", "max_hops",
@@ -28,7 +34,7 @@ CSV_FIELDS = (
     "run_id", "question_id", "category", "mode", "correct", "f1", "context_recall", "citation_precision",
     "citation_recall", "insufficient_evidence", "grounded", "route", "retrieval_ms", "total_ms",
     "prompt_tokens", "completion_tokens", "cached_calls", "retrieved_documents", "cited_documents", "paths",
-    "answer",
+    "answer", "error",
 )
 
 
@@ -69,12 +75,35 @@ def _record(q: Question, resp: QueryResponse) -> dict:
         "retrieval_ms": resp.timings["retrieval_ms"],
         "total_ms": resp.timings["total_ms"],
         "usage": resp.usage,
+        "error": None,
         "metrics": {
             "correct": question_correct(q.category, q.answer_keywords, a.answer, a.insufficient_evidence),
             "f1": token_f1(a.answer, q.reference_answer),
             "context_recall": context_recall(retrieved, q.required_documents),
             "citation_precision": precision,
             "citation_recall": recall,
+        },
+    }
+
+
+def _error_record(q: Question, mode: str, exc: Exception, elapsed_ms: float) -> dict:
+    """A failed query scores as wrong with no evidence, so errors lower the mode's numbers."""
+    code = getattr(exc, "code", type(exc).__name__)
+    return {
+        "question_id": q.id, "category": q.category, "question": q.question, "mode": mode,
+        "reference_answer": q.reference_answer, "required_documents": q.required_documents,
+        "answer": "", "explanation": "", "insufficient_evidence": False, "grounded": False, "conflicts": [],
+        "invalid_citations": [], "citations": [], "cited_documents": [], "retrieved_chunks": [], "paths": [],
+        "seeds": [], "route": "error", "route_reason": str(exc), "retrieval_ms": 0.0, "total_ms": elapsed_ms,
+        "usage": {"llm_calls": 0, "cached_calls": 0, "prompt_tokens": 0, "completion_tokens": 0,
+                  "estimated_cost_usd": 0.0},
+        "error": f"{code}: {exc}",
+        "metrics": {
+            "correct": False,
+            "f1": 0.0,
+            "context_recall": context_recall([], q.required_documents),
+            "citation_precision": None,
+            "citation_recall": citation_scores([], q.required_documents)[1],
         },
     }
 
@@ -87,6 +116,7 @@ def summarize(records: list[dict]) -> dict:
         m = [r["metrics"] for r in rs]
         modes[mode] = {
             "questions": len(rs),
+            "errors": sum(1 for r in rs if r.get("error")),
             "accuracy": _mean(float(x["correct"]) for x in m),
             "f1": _mean(x["f1"] for x in m),
             "context_recall": _mean(x["context_recall"] for x in m),
@@ -178,8 +208,14 @@ class EvaluationService:
         try:
             for q in load_questions(self.questions_path):
                 for mode in modes:
-                    resp = self.services.query.run(q.question, mode)
-                    record = _record(q, resp)
+                    started = time.perf_counter()
+                    try:
+                        record = _record(q, self.services.query.run(q.question, mode))
+                    except FATAL_ERRORS:
+                        raise
+                    except Exception as exc:
+                        log.warning("question %s (%s) failed: %s", q.id, mode, exc)
+                        record = _error_record(q, mode, exc, (time.perf_counter() - started) * 1000)
                     registry.add_eval_result(run_id, q.id, mode, record)
                     records.append(record)
                     progress["done"] += 1
@@ -235,6 +271,7 @@ class EvaluationService:
                 "cited_documents": ";".join(r["cited_documents"]),
                 "paths": " | ".join(p["rendered"] for p in r["paths"]),
                 "answer": r["answer"],
+                "error": r.get("error") or "",
             })
         return buf.getvalue(), "text/csv"
 

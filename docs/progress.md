@@ -372,3 +372,36 @@ Tests
 Not yet verified
 
 - Docker image builds (Docker Desktop not running) and the dashboard against real runs.
+
+## 2026-10-25 — Final review and fix pass
+
+A fresh reviewer read the whole branch. Verdict: ready with fixes; no critical issues,
+four important issues, all fixed with a failing test first.
+
+Fixed
+
+- Concurrency: queries rebuilt the resolver's shared name index while ingestion was
+  using it, which could cause a missed merge (a duplicate node that breaks multi-hop
+  paths) or a `dictionary changed size during iteration` error. Queries now build a
+  private index per call.
+- Groq JSON mode returns HTTP 400 `json_validate_failed` when the model produces invalid
+  JSON. This was treated as fatal and failed the whole document. It is now a
+  `llm_invalid_json` error handled like unparseable output: one retry, then the chunk is
+  skipped and recorded. Query entity extraction falls back to the name scan.
+- Evaluation: one failed query (for example malformed answer JSON) aborted the run. It is
+  now recorded for that question (scored as wrong, with the error shown in the UI and
+  exports) and the run continues. Rate limits, a missing key, provider outages and Neo4j
+  outages still stop the run.
+- Stuck documents: a multi-file upload with one invalid file stored the valid ones
+  without ingesting them; a restart mid-ingestion left documents `processing`. Uploads now
+  validate every file before storing any, and startup marks interrupted documents and
+  runs `failed` with an `interrupted` reason.
+
+Deferred (minor): driver cleanup on failed Neo4j connects and mapping of further Neo4j
+exceptions; search normalization parity between stores; bounds on per-query overrides;
+punctuation-only entity names; alias and description cleanup on document removal;
+synchronous corpus loading endpoint.
+
+Tests
+
+- `uv run pytest`: 152 passed. `pnpm lint`: no findings. `pnpm build`: succeeded.

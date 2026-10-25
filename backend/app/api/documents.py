@@ -2,6 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Response, UploadF
 
 from app.api.deps import require_ingest_ready, services
 from app.api.errors import ApiError
+from app.ingestion.parsing import validate_upload
 from app.registry import DocumentRow
 from app.services import Services
 
@@ -20,10 +21,13 @@ async def upload(background: BackgroundTasks, files: list[UploadFile] = File(...
                  svc: Services = Depends(services)):
     require_ingest_ready(svc)
     limit = svc.settings.max_upload_mb * 1024 * 1024
-    rows = []
+    uploads = []
     for f in files:
         data = await f.read(limit + 1)  # one byte over the limit is enough to reject
-        rows.append(svc.ingestion.add_file(f.filename or "upload", data))
+        name = f.filename or "upload"
+        validate_upload(name, data, limit)  # all files are checked before any is stored
+        uploads.append((name, data))
+    rows = [svc.ingestion.add_file(name, data) for name, data in uploads]
     for row in rows:
         background.add_task(svc.ingestion.ingest, row.id)
     return rows

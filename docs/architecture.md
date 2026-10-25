@@ -90,6 +90,10 @@ name or any alias equals an existing name or alias, or when the difflib ratio of
 normalized names is at least 0.92. The threshold is deliberately high: a missed merge
 costs one hop, a wrong merge invents a connection between unrelated facts.
 
+Queries build their own index from the graph on every call and never modify the
+resolver's shared index, which belongs to the (serialized) ingestion thread. A query
+running during ingestion therefore cannot cause a missed merge.
+
 Queries resolve mentions with decreasing confidence: exact name (1.0), alias (0.95),
 fuzzy ratio of at least 0.85, then nearest neighbor in the entity-name collection above
 `ENTITY_MIN_SCORE`. Independently, the question text is scanned for every known name
@@ -146,6 +150,10 @@ annotated with the `[S#]` blocks that support it. After the reply:
 | No `LLM_API_KEY` | read endpoints work; upload, re-ingest and corpus loading return 503 `llm_not_configured`; queries that miss the cache return the same |
 | HTTP 429 from the provider | `retry-after` honored, exponential backoff up to `LLM_MAX_RETRIES`, then `llm_rate_limited` (HTTP 429) |
 | 5xx or network error | retried, then `llm_unavailable` (HTTP 503) |
-| Malformed extraction JSON | one retry with the parse error; then the chunk is skipped and the error recorded |
+| Malformed extraction JSON, or the provider rejecting its own JSON-mode output (Groq HTTP 400 `json_validate_failed`) | one retry; then the chunk is skipped and the error recorded, and ingestion of the document continues |
+| Provider JSON failure on query entity extraction | the query falls back to the name scan of the question |
+| One benchmark query fails (for example malformed answer JSON) | recorded for that question as an error that scores as wrong; the run continues. Rate limits, a missing key, provider outage and Neo4j outage stop the run |
+| Backend restarted mid-ingestion or mid-run | at startup, documents left `uploaded` or `processing` and runs left `running` are marked `failed` with an `interrupted` reason |
+| Multi-file upload containing an invalid file | every file is validated before any is stored; the request fails with 400 and nothing is registered |
 | Unsupported relation | dropped and recorded as an extraction error |
 | Unexpected exception | HTTP 500 `internal_error`; details are logged, not returned |
