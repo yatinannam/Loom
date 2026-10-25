@@ -305,6 +305,7 @@ docs/            brief, design, plan, progress log, evaluation
 
 - [`docs/brief.md`](docs/brief.md): original requirements
 - [`docs/design.md`](docs/design.md): design and decisions
+- [`docs/architecture.md`](docs/architecture.md): data model, algorithms, failure handling
 - [`docs/plan.md`](docs/plan.md): implementation plan
 - [`docs/progress.md`](docs/progress.md): milestone log with test results
 - [`docs/evaluation.md`](docs/evaluation.md): benchmark method and results
