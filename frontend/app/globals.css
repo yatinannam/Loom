@@ -50,7 +50,8 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* Dye palette: weld (standard RAG), indigo (GraphRAG), woad (hybrid), madder (errors and people). */
+/* Dye palette: weld (standard RAG), indigo (GraphRAG), woad (hybrid), madder (errors).
+   Mode colors validated as a categorical set (lightness, chroma, CVD, contrast) in both themes. */
 :root {
   --radius: 0.5rem;
   --background: #f3f5f8;
@@ -73,7 +74,7 @@
   --ring: #3346a8;
   --mode-standard: #a8781a;
   --mode-graph: #3346a8;
-  --mode-hybrid: #2c7a75;
+  --mode-hybrid: #008c6f;
   --chart-1: var(--mode-standard);
   --chart-2: var(--mode-graph);
   --chart-3: var(--mode-hybrid);
@@ -109,9 +110,9 @@
     --border: #2a3145;
     --input: #323a52;
     --ring: #8c9bf0;
-    --mode-standard: #e0b456;
-    --mode-graph: #8c9bf0;
-    --mode-hybrid: #5fc2b9;
+    --mode-standard: #bb8c22;
+    --mode-graph: #7889ea;
+    --mode-hybrid: #14a596;
     --chart-4: #e07583;
     --chart-5: #9aa3b8;
     --sidebar: #141927;

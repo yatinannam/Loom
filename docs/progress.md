@@ -343,3 +343,32 @@ Tests
 Not yet verified
 
 - Rendering against a live backend with real data (requires Neo4j and an LLM key).
+
+## 2026-10-25 — Task 14: evaluation dashboard and containers
+
+Added
+
+- Evaluation page: load benchmark corpus, choose modes, run the benchmark with live
+  progress, select past runs, configuration line (models, hops, evidence budget),
+  summary table per mode (accuracy, token F1, context recall, citation precision and
+  recall, mean and median latency, LLM calls and cache hits, tokens), CSV and JSON
+  export, notices for failed runs and corpus mismatch.
+- `components/eval-charts.tsx` (Recharts): quality metrics by mode, accuracy by question
+  category, latency split into retrieval and generation. One axis per chart; tooltips
+  and legends on every chart; the summary table doubles as the table view.
+- Per-question table with verdicts per mode (icon and text, not color alone), filters
+  for failures and category, and a drill-down with each mode's answer, metrics, route,
+  graph paths and retrieved chunks (required documents emphasized).
+- Mode colors re-stepped after running the palette validator: the original teal failed
+  the chroma floor. Light: `#a8781a`, `#3346a8`, `#008c6f`; dark: `#bb8c22`, `#7889ea`,
+  `#14a596`. All lightness, chroma, color-vision-deficiency and contrast checks pass.
+- `frontend/Dockerfile` (Next.js standalone output) and the Compose `frontend` service;
+  `docker compose up --build` now describes the full stack.
+
+Tests
+
+- `pnpm lint`: no findings. `pnpm build`: succeeded. `docker compose config`: valid.
+
+Not yet verified
+
+- Docker image builds (Docker Desktop not running) and the dashboard against real runs.
