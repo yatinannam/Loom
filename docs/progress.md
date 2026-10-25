@@ -232,3 +232,19 @@ Not yet verified
 
 - Neo4j store against a live database, the Docker image build, and a live Groq run
   (Docker Desktop was not running and no key is configured). Planned for Task 15.
+
+## 2026-10-25 — Task 10: benchmark corpus and questions (frozen)
+
+Added
+
+- `data/benchmark/`: 11 fictional documents (the 3 demo documents, 6 linked documents,
+  2 distractors) and `questions.json` with 22 questions across 7 categories.
+- `docs/evaluation.md`: corpus, question categories and integrity rules.
+- `tests/test_benchmark_data.py`: question set shape, required documents exist, every
+  answer keyword appears in the required documents, benchmark includes the demo corpus.
+
+Tests
+
+- `uv run pytest`: 127 passed.
+
+This commit freezes the benchmark. No live evaluation run has happened before it.

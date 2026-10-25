@@ -1,0 +1,178 @@
+[
+  {
+    "id": "q01",
+    "category": "direct",
+    "question": "Where does Alice work?",
+    "reference_answer": "Alice works at Acme Technologies.",
+    "answer_keywords": [["acme"]],
+    "required_documents": ["employee.md"]
+  },
+  {
+    "id": "q02",
+    "category": "direct",
+    "question": "Where is Lumen Labs headquartered?",
+    "reference_answer": "Lumen Labs is headquartered in Porto, Portugal.",
+    "answer_keywords": [["porto"]],
+    "required_documents": ["lumen-labs.md"]
+  },
+  {
+    "id": "q03",
+    "category": "direct",
+    "question": "What library does Project Heron use?",
+    "reference_answer": "Project Heron uses the VisionKit library.",
+    "answer_keywords": [["visionkit"]],
+    "required_documents": ["perception.md"]
+  },
+  {
+    "id": "q04",
+    "category": "relationship",
+    "question": "Which team developed Project Falcon?",
+    "reference_answer": "The Autonomous Systems team developed Project Falcon.",
+    "answer_keywords": [["autonomous systems"]],
+    "required_documents": ["project.md"]
+  },
+  {
+    "id": "q05",
+    "category": "relationship",
+    "question": "Who maintains VisionKit?",
+    "reference_answer": "VisionKit is maintained by Lumen Labs.",
+    "answer_keywords": [["lumen labs"]],
+    "required_documents": ["visionkit.md"]
+  },
+  {
+    "id": "q06",
+    "category": "relationship",
+    "question": "Which company supplies NVIDIA Jetson devices to Acme Technologies?",
+    "reference_answer": "Northwind Components supplies NVIDIA Jetson devices to Acme Technologies.",
+    "answer_keywords": [["northwind"]],
+    "required_documents": ["sites.md"]
+  },
+  {
+    "id": "q07",
+    "category": "two_hop",
+    "question": "Which project was developed by the team that Alice leads?",
+    "reference_answer": "Project Falcon, developed by the Autonomous Systems team that Alice leads.",
+    "answer_keywords": [["falcon"]],
+    "required_documents": ["employee.md", "project.md"]
+  },
+  {
+    "id": "q08",
+    "category": "two_hop",
+    "question": "Which library is used by the project developed by Bob Tanaka's team?",
+    "reference_answer": "VisionKit. Bob Tanaka leads the Perception team, which developed Project Heron, and Project Heron uses VisionKit.",
+    "answer_keywords": [["visionkit"]],
+    "required_documents": ["people-directory.md", "perception.md"]
+  },
+  {
+    "id": "q09",
+    "category": "two_hop",
+    "question": "In which city is the vendor that maintains VisionKit headquartered?",
+    "reference_answer": "Porto. VisionKit is maintained by Lumen Labs, which is headquartered in Porto, Portugal.",
+    "answer_keywords": [["porto"]],
+    "required_documents": ["visionkit.md", "lumen-labs.md"]
+  },
+  {
+    "id": "q10",
+    "category": "two_hop",
+    "question": "Who leads the team that maintains EdgeCore?",
+    "reference_answer": "Carla Mendes. EdgeCore is maintained by the infrastructure team, which Carla Mendes leads.",
+    "answer_keywords": [["carla"]],
+    "required_documents": ["technology.md", "people-directory.md"]
+  },
+  {
+    "id": "q11",
+    "category": "three_hop",
+    "question": "Which hardware platform is used by the project led by Alice's team, and which technology connects the project to that hardware?",
+    "reference_answer": "NVIDIA Jetson. Alice leads the Autonomous Systems team, which developed Project Falcon; Project Falcon uses EdgeCore, which is deployed on NVIDIA Jetson devices.",
+    "answer_keywords": [["jetson"], ["edgecore"]],
+    "required_documents": ["employee.md", "project.md", "technology.md"]
+  },
+  {
+    "id": "q12",
+    "category": "three_hop",
+    "question": "What GPUs does the library used by Bob Tanaka's team's project run on?",
+    "reference_answer": "Intel Arc GPUs. Bob Tanaka leads the Perception team, which developed Project Heron; Heron uses VisionKit, which runs on Intel Arc GPUs.",
+    "answer_keywords": [["intel arc"]],
+    "required_documents": ["people-directory.md", "perception.md", "visionkit.md"]
+  },
+  {
+    "id": "q13",
+    "category": "three_hop",
+    "question": "Where is the vendor that maintains the library used by Project Heron headquartered?",
+    "reference_answer": "Porto, Portugal. Project Heron uses VisionKit, which is maintained by Lumen Labs, headquartered in Porto.",
+    "answer_keywords": [["porto"]],
+    "required_documents": ["perception.md", "visionkit.md", "lumen-labs.md"]
+  },
+  {
+    "id": "q14",
+    "category": "multi_document",
+    "question": "Which two projects are described in the documents, and which team developed each of them?",
+    "reference_answer": "Project Falcon was developed by the Autonomous Systems team, and Project Heron was developed by the Perception team.",
+    "answer_keywords": [["falcon"], ["heron"], ["autonomous systems"], ["perception"]],
+    "required_documents": ["project.md", "perception.md"]
+  },
+  {
+    "id": "q15",
+    "category": "multi_document",
+    "question": "Where do Project Falcon field tests take place, and which team developed Project Falcon?",
+    "reference_answer": "Field tests take place at the Pune robotics lab, and the Autonomous Systems team developed Project Falcon.",
+    "answer_keywords": [["pune"], ["autonomous systems"]],
+    "required_documents": ["sites.md", "project.md"]
+  },
+  {
+    "id": "q16",
+    "category": "multi_document",
+    "question": "Which external companies does Acme Technologies work with, and where is each based?",
+    "reference_answer": "Lumen Labs, based in Porto, Portugal, and Northwind Components, based in Rotterdam, Netherlands.",
+    "answer_keywords": [["lumen"], ["porto"], ["northwind"], ["rotterdam"]],
+    "required_documents": ["lumen-labs.md", "northwind.md"]
+  },
+  {
+    "id": "q17",
+    "category": "insufficient_evidence",
+    "question": "What is Alice's annual salary?",
+    "reference_answer": "The documents do not state Alice's salary.",
+    "answer_keywords": [],
+    "required_documents": []
+  },
+  {
+    "id": "q18",
+    "category": "insufficient_evidence",
+    "question": "Which programming language is EdgeCore written in?",
+    "reference_answer": "The documents do not state the programming language of EdgeCore.",
+    "answer_keywords": [],
+    "required_documents": []
+  },
+  {
+    "id": "q19",
+    "category": "insufficient_evidence",
+    "question": "In which year was Project Heron launched?",
+    "reference_answer": "The documents do not state when Project Heron was launched.",
+    "answer_keywords": [],
+    "required_documents": []
+  },
+  {
+    "id": "q20",
+    "category": "retrieval_trap",
+    "question": "Which hardware platform does Project Falcon run on?",
+    "reference_answer": "NVIDIA Jetson, through the EdgeCore platform that Project Falcon uses.",
+    "answer_keywords": [["jetson"]],
+    "required_documents": ["project.md", "technology.md"]
+  },
+  {
+    "id": "q21",
+    "category": "retrieval_trap",
+    "question": "Who leads the team that developed Project Falcon?",
+    "reference_answer": "Alice leads the Autonomous Systems team, which developed Project Falcon.",
+    "answer_keywords": [["alice"]],
+    "required_documents": ["project.md", "employee.md"]
+  },
+  {
+    "id": "q22",
+    "category": "multi_document",
+    "question": "Which team does Carla Mendes lead, and what does that team maintain?",
+    "reference_answer": "Carla Mendes leads the infrastructure team, which maintains EdgeCore.",
+    "answer_keywords": [["infrastructure"], ["edgecore"]],
+    "required_documents": ["people-directory.md", "technology.md"]
+  }
+]
