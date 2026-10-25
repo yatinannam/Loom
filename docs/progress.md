@@ -89,3 +89,34 @@ Decisions
   mapped back to `None`.
 - The real ONNX embedder was not exercised in this task; it downloads the model
   (about 80 MB) on first use and is covered by the live smoke test in Task 9.
+
+## 2026-10-25 — Task 5: extraction and graph stores
+
+Added
+
+- `app/extraction/schema.py`: Pydantic schema for extraction output. Entity types are
+  an allow-list (unknown types become `OTHER`); relation types are coerced to
+  `UPPER_SNAKE_CASE`; confidence is clamped to [0, 1].
+- `app/extraction/normalize.py`: name normalization (NFKC, lowercase, punctuation to
+  space, collapsed whitespace, leading "the" removed), slug entity ids, and the evidence
+  support check (substring after normalization, or 80% token overlap with one sentence).
+- `app/extraction/extractor.py`: extraction prompt (JSON mode), validation that drops
+  invalid entities, relations with unknown endpoints, self-relations and relations whose
+  evidence is not in the chunk, each with a warning. One retry on unparseable output.
+- `app/graph/store.py`: `GraphStore` protocol, `Entity`, `Relation`, `Mention`.
+- `app/graph/memory_store.py`: in-process store with the same semantics (tests).
+- `app/graph/neo4j_store.py`: Neo4j store. Unique constraints on `Entity.id` and
+  `Chunk.id`; `(:Entity)-[:MENTIONED_IN]->(:Chunk)`; one `RELATES {type}` edge per
+  (source, type, target) with parallel provenance lists (`chunk_ids`, `document_ids`,
+  `evidence`). Document removal strips provenance, deletes empty edges, the document's
+  chunk nodes and orphaned entities in one transaction.
+
+Tests
+
+- `uv run pytest`: 62 passed. Neo4j-backed store tests are skipped unless
+  `NEO4J_TEST_URI` is set; not yet run (Docker Desktop not running).
+
+Decisions
+
+- Entity type: the first non-`OTHER` type assigned is kept (simpler than the
+  most-frequent rule in the design).
