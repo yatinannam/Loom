@@ -120,3 +120,30 @@ Decisions
 
 - Entity type: the first non-`OTHER` type assigned is kept (simpler than the
   most-frequent rule in the design).
+
+## 2026-10-25 — Task 6: entity resolution and ingestion pipeline
+
+Added
+
+- `app/graph/resolution.py`: `EntityResolver`. Ingestion: exact normalized name or alias
+  match, then difflib ratio >= 0.92 on the primary name; otherwise a new node. Query:
+  exact (1.0), alias (0.95), fuzzy >= 0.85, embedding nearest neighbor above
+  `ENTITY_MIN_SCORE`, plus a whole-word scan of the question for known names and aliases
+  (0.9, keys of 3+ characters). Results deduplicated per entity, best score kept.
+- `app/ingestion/pipeline.py`: `IngestionService.add_file` (validate, content-hash id,
+  store under `data/runtime/uploads/`, registry row) and `ingest` (remove previous
+  contribution, parse, chunk, embed, extract per chunk, resolve, upsert entities,
+  relations and provenance, index entity names, recompute degrees, record counts).
+  Any failure removes the partial contribution and marks the document `failed` with
+  `code: message`. Extraction warnings are stored as extraction errors.
+- `data/demo/`: the three smoke-test documents.
+- `tests/fixtures/demo_llm.py`: canned extraction responses for the demo corpus.
+- `tests/conftest.py`: test environment factory (ephemeral Chroma, in-memory graph,
+  fake LLM) and an ingested demo corpus fixture.
+
+Tests
+
+- `uv run pytest`: 81 passed. Covers the five expected demo relations with provenance,
+  team-name variant merge, idempotent re-ingest, duplicate upload, document removal,
+  rate limit mid-ingestion (document failed, no partial data), unsupported evidence
+  logged, PDF without a text layer.
