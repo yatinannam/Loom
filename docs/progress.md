@@ -276,3 +276,37 @@ Added
 Tests
 
 - `uv run pytest`: 141 passed.
+
+## 2026-10-25 — Task 12: frontend shell, overview and documents
+
+Added
+
+- `frontend/`: Next.js 15 (App Router, TypeScript), Tailwind CSS 4, shadcn/ui components,
+  Motion, Cytoscape.js, Recharts, lucide icons. pnpm build scripts allow-listed in
+  `pnpm-workspace.yaml`.
+- Theme: dye palette tokens in `app/globals.css` (weld for Standard RAG, indigo for
+  GraphRAG, woad teal for Hybrid, madder for errors), light and dark via
+  `prefers-color-scheme`, reduced motion respected. Hanken Grotesk for UI text,
+  JetBrains Mono only for ids and graph paths.
+- `lib/api.ts` (typed client for every backend route, uniform `ApiError`),
+  `lib/types.ts` (backend response models), `lib/use-api.ts` (load and poll hook),
+  `lib/modes.ts` (mode and entity-type colors, formatting).
+- `components/app-shell.tsx`: navigation rail with live service status (API, Neo4j,
+  LLM key).
+- Overview page: index counts, demo walkthrough, models in use, configuration warnings,
+  recent activity.
+- Documents page: drag-and-drop upload, status with polling while extraction runs,
+  chunk viewer, extraction error viewer, re-ingest, remove with confirmation describing
+  exactly what is deleted.
+- `README.md`: architecture, setup, configuration, operating modes, API, demo, benchmark,
+  tests, limitations, troubleshooting.
+
+Tests
+
+- `pnpm lint`: no findings. `pnpm build`: succeeded.
+- Backend `uv run pytest`: 141 passed.
+
+Decisions
+
+- The shadcn CLI added a third-party `cn` package; it was replaced with the standard local
+  `clsx` + `tailwind-merge` helper and removed.
