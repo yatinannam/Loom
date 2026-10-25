@@ -147,3 +147,29 @@ Tests
   team-name variant merge, idempotent re-ingest, duplicate upload, document removal,
   rate limit mid-ingestion (document failed, no partial data), unsupported evidence
   logged, PDF without a text layer.
+
+## 2026-10-25 — Task 7: traversal and retrievers
+
+Added
+
+- `app/graph/traversal.py`: breadth-first enumeration of simple paths (1 to `MAX_HOPS`
+  edges, both edge directions, no revisits). Seeds are always expanded; other nodes with
+  degree above `MAX_NODE_DEGREE` end a path but are not expanded. Output capped at
+  `MAX_PATHS`. Scoring: mean cosine similarity between the question and each edge's fact
+  text, times `HOP_DECAY^(hops-1)`, plus 0.1 when the path ends on a second seed.
+- `app/retrieval/standard.py`: vector-only baseline (no graph imports, enforced by a test).
+- `app/retrieval/graph.py`: query entity extraction (LLM, JSON), seed resolution,
+  traversal, path ranking, evidence from path edge provenance plus mentions of path end
+  nodes, cut to `MAX_EVIDENCE_CHUNKS`. Returns an explicit `route_reason` when no seed,
+  no relation or no path qualifies.
+- `app/retrieval/fusion.py`: weighted reciprocal rank fusion with per-retriever ranks kept.
+- `app/retrieval/hybrid.py`: fuses both; `route = "vector_only"` with the reason when the
+  graph contributes nothing.
+- `app/retrieval/types.py`: `PathStep`, `GraphPath.render()`
+  (`A -[LEADS]-> B <-[USES]- C`), `RetrievedChunk`, `RetrievalResult`.
+
+Tests
+
+- `uv run pytest`: 98 passed. Includes GraphRAG retrieving all three demo documents for
+  the Alice question through `Alice -[LEADS]-> Autonomous Systems -[DEVELOPED]-> Project
+  Falcon -[USES]-> EdgeCore`.

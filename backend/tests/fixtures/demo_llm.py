@@ -2,6 +2,7 @@
 
 import json
 
+from app.retrieval.graph import QUERY_ENTITY_PREFIX
 from tests.fakes import FakeLLM
 
 EMPLOYEE_SENTENCE = "Alice works at Acme Technologies and leads the Autonomous Systems team."
@@ -61,8 +62,16 @@ EXTRACTIONS = {
 }
 
 
+QUERY_ENTITIES = [
+    (f"{QUERY_ENTITY_PREFIX}\n{ALICE_QUESTION}",
+     json.dumps({"entities": ["Alice", "Alice's team", "project", "hardware platform"]})),
+    # Any other question: no entities named.
+    (QUERY_ENTITY_PREFIX, json.dumps({"entities": []})),
+]
+
+
 def demo_responses() -> list[tuple[str, object]]:
-    return list(EXTRACTIONS.items())
+    return [*EXTRACTIONS.items(), *QUERY_ENTITIES]
 
 
 def demo_fake_llm(extra: list[tuple[str, object]] | None = None) -> FakeLLM:
