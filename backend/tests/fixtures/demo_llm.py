@@ -70,8 +70,21 @@ QUERY_ENTITIES = [
 ]
 
 
+ANSWERS = [
+    (f"Question: {ALICE_QUESTION}", json.dumps({
+        "answer": "Project Falcon runs on NVIDIA Jetson devices; EdgeCore connects the project to that hardware.",
+        "explanation": "Alice leads Autonomous Systems, which developed Project Falcon; Falcon uses EdgeCore, "
+                       "which is deployed on NVIDIA Jetson.",
+        "citations": ["S1", "P1"],
+        "insufficient_evidence": False,
+        "conflicts": [],
+    })),
+]
+
+
 def demo_responses() -> list[tuple[str, object]]:
-    return [*EXTRACTIONS.items(), *QUERY_ENTITIES]
+    # Answer prompts contain document text, so answer keys must be matched before extraction keys.
+    return [*ANSWERS, *QUERY_ENTITIES, *EXTRACTIONS.items()]
 
 
 def demo_fake_llm(extra: list[tuple[str, object]] | None = None) -> FakeLLM:

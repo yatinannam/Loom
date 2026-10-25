@@ -173,3 +173,25 @@ Tests
 - `uv run pytest`: 98 passed. Includes GraphRAG retrieving all three demo documents for
   the Alice question through `Alice -[LEADS]-> Autonomous Systems -[DEVELOPED]-> Project
   Falcon -[USES]-> EdgeCore`.
+
+## 2026-10-25 — Task 8: grounded answers and query service
+
+Added
+
+- `app/answer/generator.py`: prompt with numbered evidence blocks `[S#]` (filename, page,
+  chunk id, text) and graph facts `[P#]` (rendered path and the evidence blocks that
+  support it). JSON reply with `answer`, `explanation`, `citations`,
+  `insufficient_evidence`, `conflicts`. Citations not present in the prompt are removed
+  into `invalid_citations`; an answer with no valid citation that does not declare
+  insufficient evidence is marked `grounded = false`. Empty retrieval skips the LLM and
+  returns an insufficient-evidence answer.
+- `app/query.py`: `QueryService.run(question, mode, overrides)` for `standard`, `graph`
+  and `hybrid`, with retrieval, generation and total timings, token usage, cache hits and
+  estimated cost. Per-query overrides are limited to retrieval parameters and validated.
+  Graph modes raise `GraphUnavailable` when Neo4j is not connected; standard mode still
+  works.
+
+Tests
+
+- `uv run pytest`: 113 passed. Includes the Alice question end to end in all three modes
+  with the fake LLM.
