@@ -1,0 +1,9 @@
+.git
+.env
+.superpowers
+data/runtime
+**/__pycache__
+**/.venv
+**/.pytest_cache
+**/node_modules
+**/.next

@@ -1,6 +1,7 @@
 """Ingestion: store upload, parse, chunk, embed, extract, resolve and persist."""
 
 import logging
+import threading
 from pathlib import Path
 
 from app.config import Settings
@@ -33,6 +34,8 @@ class IngestionService:
         self.graph = graph
         self.resolver = resolver
         self.llm = llm
+        # One ingestion at a time: the resolver's name index and degree counts are shared state.
+        self._lock = threading.Lock()
 
     def _path(self, doc: DocumentRow) -> Path:
         return self.settings.uploads_dir / f"{doc.id}{Path(doc.filename).suffix.lower()}"
@@ -53,6 +56,10 @@ class IngestionService:
 
     def ingest(self, document_id: str) -> None:
         """Ingest one stored document. Never raises; the outcome is the document status."""
+        with self._lock:
+            self._ingest_locked(document_id)
+
+    def _ingest_locked(self, document_id: str) -> None:
         doc = self.registry.get_document(document_id)
         if doc is None:
             log.warning("ingest requested for unknown document %s", document_id)
@@ -132,7 +139,8 @@ class IngestionService:
         doc = self.registry.get_document(document_id)
         if doc is None:
             return
-        self._remove_contribution(document_id)
+        with self._lock:
+            self._remove_contribution(document_id)
         self._path(doc).unlink(missing_ok=True)
         self.registry.delete_document(document_id)
         self.registry.log_activity("delete", f"Removed {doc.filename}")

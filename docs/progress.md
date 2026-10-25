@@ -195,3 +195,40 @@ Tests
 
 - `uv run pytest`: 113 passed. Includes the Alice question end to end in all three modes
   with the fake LLM.
+
+## 2026-10-25 — Task 9: HTTP API
+
+Added
+
+- `app/main.py`: app factory with lifespan service construction, CORS, routers.
+- `app/services.py`: `build_services(settings)` wires SQLite registry, persistent Chroma
+  (`data/runtime/chroma`), embedder, Groq client with disk cache, lazy Neo4j store,
+  resolver, ingestion and query services.
+- `app/graph/lazy.py`: `LazyGraph` connects to Neo4j on first use and retries after a
+  10 s cooldown, so the API starts and serves read endpoints while Neo4j is down.
+- `app/api/errors.py`: one error shape `{"error": {"code", "message"}}`. Mapping:
+  upload rejections 400, validation 422, not found 404, `graph_unavailable` 503,
+  `llm_not_configured` 503, `llm_rate_limited` 429, `llm_unavailable` 503,
+  `llm_bad_response` 502, anything else 500 `internal_error` (logged, not leaked).
+- Routes: `GET /api/health`, `GET /api/stats`, `GET /api/activity`;
+  `POST /api/documents/upload`, `GET /api/documents`, `GET|DELETE /api/documents/{id}`,
+  `POST /api/documents/{id}/ingest`, `GET /api/documents/{id}/chunks`,
+  `GET /api/documents/{id}/errors`; `GET /api/graph/stats`, `GET /api/graph/entities`,
+  `GET /api/graph/search`, `GET /api/graph/entities/{id}`,
+  `GET /api/graph/entities/{id}/neighbors`, `GET /api/graph/subgraph`; `POST /api/query`.
+  Upload and re-ingest refuse with 503 up front when the LLM key or Neo4j is missing.
+  Ingestion runs as a background task, serialized by a lock.
+- `backend/Dockerfile`, `.dockerignore`, Compose `backend` service (depends on healthy
+  Neo4j, runtime data volume, health check).
+
+Tests
+
+- `uv run pytest`: 124 passed (11 API tests with `TestClient`).
+- Manual: `uvicorn app.main:app` started without Neo4j and without a key;
+  `/api/health` reported `degraded` with `neo4j: down` and `llm_configured: false`,
+  `/api/stats` and a standard-mode query on the empty index returned normally.
+
+Not yet verified
+
+- Neo4j store against a live database, the Docker image build, and a live Groq run
+  (Docker Desktop was not running and no key is configured). Planned for Task 15.
