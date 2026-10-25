@@ -65,3 +65,27 @@ Added
 Tests
 
 - `uv run pytest`: 27 passed.
+
+## 2026-10-25 — Task 4: vector store
+
+Added
+
+- `app/vector/store.py`: `ChromaVectorStore` over two cosine collections
+  (`{prefix}-chunks`, `{prefix}-entities`). Embeddings are computed by an `Embedder` and
+  passed to Chroma explicitly. `make_embedder`: `all-MiniLM-L6-v2` uses Chroma's bundled
+  ONNX model; any other name loads sentence-transformers (optional extra `st`).
+  `model_slug` gives the collection prefix so changing the model never mixes vector
+  dimensions. Similarity score is `1 - cosine distance`.
+- `tests/fakes.py`: `HashEmbedder` (deterministic bag-of-words hashing) and `FakeLLM`
+  (canned responses keyed by prompt substring; fails loudly on unknown prompts).
+
+Tests
+
+- `uv run pytest`: 35 passed.
+
+Decisions
+
+- Chroma metadata cannot store null, so a missing page number is stored as `-1` and
+  mapped back to `None`.
+- The real ONNX embedder was not exercised in this task; it downloads the model
+  (about 80 MB) on first use and is covered by the live smoke test in Task 9.
