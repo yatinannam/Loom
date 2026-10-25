@@ -310,3 +310,36 @@ Decisions
 
 - The shadcn CLI added a third-party `cn` package; it was replaced with the standard local
   `clsx` + `tailwind-merge` helper and removed.
+
+## 2026-10-25 — Task 13: graph explorer and question answering
+
+Added
+
+- `components/graph-canvas.tsx`: Cytoscape canvas with color and shape per entity type
+  (shape duplicates the color encoding for readers who cannot rely on color), node size
+  by degree, labeled directed edges, selection that fades unrelated elements, incremental
+  updates with a cose layout.
+- Graph page: entity search, node panel (type, description, aliases, relationships,
+  mentions with file, page and chunk), relationship panel (type, confidence, every
+  supporting sentence with its document and chunk), double-click to load a two-hop
+  neighborhood, legend of types present.
+- `components/path-thread.tsx`: graph paths rendered as entity chips joined by relation
+  strands that draw in sequence when an answer arrives; direction shown by arrowheads.
+- `components/answer-card.tsx`: generated answer visually separated from retrieved
+  evidence and labeled with the model; flags for insufficient evidence, missing valid
+  citations, removed citations and conflicts; citation chips that highlight the cited
+  evidence block or path; collapsible evidence list with scores and per-retriever ranks;
+  retrieval details (route and reason, seed entities and match method, timings, LLM calls,
+  cache hits, tokens).
+- Ask page: mode selector (Standard RAG, GraphRAG, Hybrid GraphRAG, Compare all), compare
+  view in three columns, example questions from the benchmark. Compare runs the modes
+  sequentially to stay inside free-tier rate limits.
+- Removed unused create-next-app assets.
+
+Tests
+
+- `pnpm lint`: no findings. `pnpm build`: succeeded.
+
+Not yet verified
+
+- Rendering against a live backend with real data (requires Neo4j and an LLM key).

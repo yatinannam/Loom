@@ -23,7 +23,7 @@ including a local Ollama server), CPU embeddings, Neo4j Community and ChromaDB.
 | Grounded answers with citation validation | implemented, tested |
 | Benchmark corpus (11 documents, 22 questions), metrics, runner | implemented, tested |
 | HTTP API | implemented, tested |
-| Web UI | overview and documents pages done; graph, ask and evaluation pages in progress |
+| Web UI | overview, documents, graph explorer and question answering done; evaluation dashboard in progress |
 | Live benchmark results | not yet run; results will be published in `docs/evaluation.md` |
 
 Progress is logged per milestone in [`docs/progress.md`](docs/progress.md).
