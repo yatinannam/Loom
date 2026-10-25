@@ -32,7 +32,11 @@ class Services:
     def assemble(cls, settings, registry, vector, graph, llm, resolver, ingestion) -> "Services":
         query = QueryService(llm=llm, vector=vector, graph=graph, resolver=resolver, settings=settings,
                              registry=registry)
-        return cls(settings, registry, vector, graph, llm, resolver, ingestion, query)
+        services = cls(settings, registry, vector, graph, llm, resolver, ingestion, query)
+        from app.evaluation.runner import EvaluationService
+
+        services.evaluation = EvaluationService(services)
+        return services
 
 
 def build_services(settings: Settings) -> Services:

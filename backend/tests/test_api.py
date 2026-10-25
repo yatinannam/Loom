@@ -136,3 +136,38 @@ def test_activity_feed(client):
     upload(client, "employee.md")
     items = client.get("/api/activity").json()
     assert items[0]["kind"] == "ingest"
+
+
+def test_evaluation_endpoints(tmp_path):
+    import time
+
+    from app.evaluation.runner import EvaluationService
+    from tests.test_runner import QUESTIONS, ZORBLAX, INSUFFICIENT
+    from tests.fixtures.demo_llm import demo_fake_llm
+
+    env = make_env(tmp_path, llm=demo_fake_llm(extra=[(f"Question: {ZORBLAX}", INSUFFICIENT)]), benchmark_dir=DEMO_DIR)
+    svc = services_from(env)
+    qpath = tmp_path / "q.json"
+    import json
+    qpath.write_text(json.dumps(QUESTIONS), encoding="utf-8")
+    svc.evaluation = EvaluationService(svc, questions_path=qpath)
+    with TestClient(create_app(svc)) as c:
+        assert c.get("/api/evaluation/results").status_code == 404
+        assert len(c.post("/api/evaluation/load-corpus").json()["document_ids"]) == 3
+        assert c.post("/api/evaluation/run", json={"modes": ["magic"]}).status_code == 400
+        run = c.post("/api/evaluation/run", json={"modes": ["standard", "graph"]})
+        assert run.status_code == 202
+        run_id = run.json()["id"]
+        for _ in range(100):
+            if c.get(f"/api/evaluation/runs/{run_id}").json()["status"] != "running":
+                break
+            time.sleep(0.05)
+        body = c.get(f"/api/evaluation/runs/{run_id}").json()
+        assert body["status"] == "completed"
+        assert body["progress"]["done"] == 4
+        assert len(c.get(f"/api/evaluation/runs/{run_id}/results").json()) == 4
+        assert c.get("/api/evaluation/results").json()["run"]["id"] == run_id
+        csv_resp = c.get(f"/api/evaluation/runs/{run_id}/export", params={"format": "csv"})
+        assert csv_resp.headers["content-type"].startswith("text/csv")
+        assert "attachment" in csv_resp.headers["content-disposition"]
+        assert [r["id"] for r in c.get("/api/evaluation/runs").json()] == [run_id]

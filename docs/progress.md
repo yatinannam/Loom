@@ -248,3 +248,31 @@ Tests
 - `uv run pytest`: 127 passed.
 
 This commit freezes the benchmark. No live evaluation run has happened before it.
+
+## 2026-10-25 — Task 11: metrics, runner and evaluation API
+
+Added
+
+- `app/evaluation/metrics.py`: SQuAD-style normalization; keyword correctness (every
+  group needs one alternative present as whole words); insufficient-evidence questions
+  are correct only when the system declares insufficient evidence, and any other question
+  is incorrect when it does; token F1; context recall over required documents; citation
+  precision and recall over cited documents (path citations count the documents of their
+  supporting chunks).
+- `app/evaluation/runner.py`: `EvaluationService` with `load_corpus` (idempotent upload
+  and ingest of `data/benchmark/`), `start` (background thread, one run at a time),
+  `run_now`, `progress`, `export` (JSON or CSV). Each record holds the question,
+  reference, required documents, mode, retrieved chunks with scores and retriever ranks,
+  graph paths, seeds, route, answer, citations, timings, token usage and metrics. Run
+  config records models, retrieval settings, indexed and benchmark document ids and
+  `corpus_mismatch`. An LLM failure (for example a daily rate limit) marks the run
+  `failed` with the reason and keeps the partial summary.
+- CLI: `uv run python -m app.evaluation.runner --load-corpus --modes standard graph hybrid`.
+- `app/api/evaluation.py`: `POST /api/evaluation/load-corpus`, `POST /api/evaluation/run`
+  (202; 409 when a run is in progress), `GET /api/evaluation/runs`,
+  `GET /api/evaluation/runs/{id}`, `GET /api/evaluation/runs/{id}/results`,
+  `GET /api/evaluation/results` (latest), `GET /api/evaluation/runs/{id}/export?format=csv|json`.
+
+Tests
+
+- `uv run pytest`: 141 passed.

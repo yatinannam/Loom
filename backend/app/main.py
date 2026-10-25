@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import documents, graph, query, system
+from app.api import documents, evaluation, graph, query, system
 from app.api.errors import install_error_handlers
 from app.config import get_settings
 from app.logging import configure_logging
@@ -32,7 +32,7 @@ def create_app(services: Services | None = None) -> FastAPI:
         allow_headers=["*"],
     )
     install_error_handlers(app)
-    for router in (system.router, documents.router, graph.router, query.router):
+    for router in (system.router, documents.router, graph.router, query.router, evaluation.router):
         app.include_router(router)
     return app
 
